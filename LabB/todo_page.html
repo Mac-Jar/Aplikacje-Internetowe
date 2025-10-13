@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista To-Do</title>
+    <link rel="stylesheet" href="style.css"> <!-- opcjonalnie -->
+    <script src="app.js" defer></script>
+</head>
+<body>
+<header>
+    <h1>Moja lista zadań</h1>
+
+    <!-- Wyszukiwarka -->
+    <div id="search-container">
+        <label for="search">Szukaj:</label>
+        <input type="text" id="search" name="search" placeholder="Wpisz frazę...">
+    </div>
+</header>
+
+<main>
+    <!-- Lista zadań -->
+    <ul id="todo-list">
+        <li data-id="1">
+            <span class="task-text">Zrobić zakupy spożywcze</span>
+            <span class="task-date">Termin: 2025-10-20</span>
+            <button class="delete-btn">🗑️</button>
+        </li>
+        <li data-id="2">
+            <span class="task-text">Przygotować prezentację na zajęcia</span>
+            <span class="task-date">Termin: 2025-10-25</span>
+            <button class="delete-btn">🗑️</button>
+        </li>
+        <li data-id="3">
+            <span class="task-text">Zadzwonić do dentysty</span>
+            <span class="task-date">Termin: 2025-11-01</span>
+            <button class="delete-btn">🗑️</button>
+        </li>
+    </ul>
+
+    <!-- Formularz dodawania nowego zadania -->
+    <section id="add-task-section">
+        <h2>Dodaj nowe zadanie</h2>
+        <form id="add-task-form">
+            <label for="new-task">Treść zadania:</label>
+            <input type="text" id="new-task" name="new-task" placeholder="Wpisz zadanie...">
+
+            <label for="task-deadline">Termin wykonania (opcjonalnie):</label>
+            <input type="datetime-local" id="task-deadline" name="task-deadline">
+
+            <button type="submit" id="add-btn">Dodaj zadanie</button>
+        </form>
+
+        <!-- Miejsce na komunikaty walidacji -->
+        <p id="validation-message" class="error"></p>
+    </section>
+</main>
+
+<footer>
+    <p>Lista To-Do © 2025</p>
+</footer>
+</body>
+</html>
