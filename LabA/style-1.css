@@ -1,0 +1,126 @@
+/* Base styles for all devices */
+body {
+    background-color: #f4ecd8;
+    font-family: 'Garamond', 'Times New Roman', serif;
+    color: #3e2f1c;
+    line-height: 1.6;
+    padding: 2em;
+    background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
+    background-repeat: repeat;
+    background-size: cover;
+    margin: 0;
+}
+
+h1, h2, h3 {
+    font-family: 'Georgia', serif;
+    color: #5a3e1b;
+    text-shadow: 1px 1px 0 #d8cbb0;
+    margin-bottom: 0.5em;
+}
+
+h1 {
+    font-size: 2.5rem;
+    border-bottom: 2px solid #a78b61;
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    font-size: 2rem;
+    border-bottom: 1px solid #a78b61;
+    padding-bottom: 0.2em;
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-style: italic;
+}
+
+p.p1 {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1em;
+}
+
+p.p2 {
+    font-size: 1rem;
+    font-style: italic;
+    margin-bottom: 1em;
+}
+
+p.p3 {
+    font-size: 0.95rem;
+    color: #6b5b3e;
+    margin-bottom: 1em;
+}
+
+ol {
+    counter-reset: item;
+    list-style: none;
+    padding-left: 0;
+    margin-top: 2em;
+}
+
+ol li {
+    counter-increment: item;
+    margin-bottom: 1em;
+    padding-left: 2em;
+    position: relative;
+    font-family: 'Garamond', serif;
+    font-size: 1.1rem;
+    color: #4a3b2c;
+    background-color: #fdf6e3;
+    border-left: 3px solid #a78b61;
+    padding: 0.75em 1em;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+}
+/* Responsive styles for smaller screens */
+@media (max-width: 768px) {
+    body {
+        padding: 1em;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.2rem;
+    }
+
+    table, thead, tbody, th, td, tr {
+        display: block;
+        width: 100%;
+    }
+
+    table thead {
+        display: none;
+    }
+
+    table tr {
+        margin-bottom: 1em;
+        border: 1px solid #a78b61;
+        padding: 0.5em;
+        background-color: #fdf6e3;
+    }
+
+    table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+    }
+
+    table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 45%;
+        padding-left: 1em;
+        font-weight: bold;
+        text-align: left;
+        color: #5a3e1b;
+    }
+}
