@@ -1,0 +1,21 @@
+# Ignoruj pliki tymczasowe edytorów
+*.log
+*.tmp
+*.swp
+*.sublime-workspace
+*.vscode/
+.idea/
+
+# Ignoruj systemowe pliki
+.DS_Store
+Thumbs.db
+
+# Ignoruj foldery build/deploy (jeśli używasz)
+dist/
+build/
+node_modules/
+
+# Ignoruj pliki cache przeglądarki (jeśli testujesz lokalnie)
+.cache/
+.vscode/
+.idea/
