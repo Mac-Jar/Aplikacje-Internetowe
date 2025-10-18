@@ -145,7 +145,8 @@
 /* Base body styling */
 body {
     font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 100%);
+    background: url('https://www.transparenttextures.com/patterns/stardust.png'),
+    linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 100%);
     color: #eaeaea;
     line-height: 1.7;
     padding: 2rem;
