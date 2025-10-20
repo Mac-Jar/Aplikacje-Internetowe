@@ -1,62 +1,135 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="pl">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>Lista To-Do</title>-->
+<!--    <link rel="stylesheet" href="style.css"> &lt;!&ndash; opcjonalnie &ndash;&gt;-->
+<!--    <script src="app.js" defer></script>-->
+<!--</head>-->
+<!--<body>-->
+<!--<header>-->
+<!--    <h1>Moja lista zadań</h1>-->
+
+<!--    &lt;!&ndash; Wyszukiwarka &ndash;&gt;-->
+<!--    <div id="search-container">-->
+<!--        <label for="search">Szukaj:</label>-->
+<!--        <input type="text" id="search" name="search" placeholder="Wpisz frazę...">-->
+<!--    </div>-->
+<!--</header>-->
+
+<!--<main>-->
+<!--    &lt;!&ndash; Lista zadań &ndash;&gt;-->
+<!--    <ul id="todo-list">-->
+<!--        <li data-id="1">-->
+<!--            <span class="task-text">Zrobić zakupy spożywcze</span>-->
+<!--            <span class="task-date">Termin: 2025-10-20</span>-->
+<!--            <button class="delete-btn">🗑️</button>-->
+<!--        </li>-->
+<!--        <li data-id="2">-->
+<!--            <span class="task-text">Przygotować prezentację na zajęcia</span>-->
+<!--            <span class="task-date">Termin: 2025-10-25</span>-->
+<!--            <button class="delete-btn">🗑️</button>-->
+<!--        </li>-->
+<!--        <li data-id="3">-->
+<!--            <span class="task-text">Zadzwonić do dentysty</span>-->
+<!--            <span class="task-date">Termin: 2025-11-01</span>-->
+<!--            <button class="delete-btn">🗑️</button>-->
+<!--        </li>-->
+<!--    </ul>-->
+
+<!--    &lt;!&ndash; Formularz dodawania nowego zadania &ndash;&gt;-->
+<!--    <section id="add-task-section">-->
+<!--        <h2>Dodaj nowe zadanie</h2>-->
+<!--        <form id="add-task-form">-->
+<!--            <label for="new-task">Treść zadania:</label>-->
+<!--            <input type="text" id="new-task" name="new-task" placeholder="Wpisz zadanie...">-->
+
+<!--            <label for="task-deadline">Termin wykonania (opcjonalnie):</label>-->
+<!--            <input type="datetime-local" id="task-deadline" name="task-deadline">-->
+
+<!--            <button type="submit" id="add-btn">Dodaj zadanie</button>-->
+<!--        </form>-->
+
+<!--        &lt;!&ndash; Miejsce na komunikaty walidacji &ndash;&gt;-->
+<!--        <p id="validation-message" class="error"></p>-->
+<!--    </section>-->
+<!--</main>-->
+
+<!--<footer>-->
+<!--    <p>Lista To-Do © 2025</p>-->
+<!--</footer>-->
+<!--</body>-->
+<!--</html>-->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Lista To-Do</title>
-    <link rel="stylesheet" href="style.css"> <!-- opcjonalnie -->
-    <script src="app.js" defer></script>
+    <title>Lista ToDo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2em auto;
+            max-width: 600px;
+        }
+        h1 {
+            text-align: center;
+        }
+        #todo-list {
+            margin-top: 20px;
+            padding: 0;
+            list-style-type: none;
+        }
+        .task {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f7f7f7;
+            border: 1px solid #ddd;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+        }
+        .task span {
+            flex: 1;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: red;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #controls input, #controls button {
+            padding: 8px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-<header>
-    <h1>Moja lista zadań</h1>
+<h1>Moja lista ToDo</h1>
 
-    <!-- Wyszukiwarka -->
-    <div id="search-container">
-        <label for="search">Szukaj:</label>
-        <input type="text" id="search" name="search" placeholder="Wpisz frazę...">
-    </div>
-</header>
+<input type="text" id="search" placeholder="🔍 Szukaj..." />
 
-<main>
-    <!-- Lista zadań -->
-    <ul id="todo-list">
-        <li data-id="1">
-            <span class="task-text">Zrobić zakupy spożywcze</span>
-            <span class="task-date">Termin: 2025-10-20</span>
-            <button class="delete-btn">🗑️</button>
-        </li>
-        <li data-id="2">
-            <span class="task-text">Przygotować prezentację na zajęcia</span>
-            <span class="task-date">Termin: 2025-10-25</span>
-            <button class="delete-btn">🗑️</button>
-        </li>
-        <li data-id="3">
-            <span class="task-text">Zadzwonić do dentysty</span>
-            <span class="task-date">Termin: 2025-11-01</span>
-            <button class="delete-btn">🗑️</button>
-        </li>
-    </ul>
+<ul id="todo-list"></ul>
 
-    <!-- Formularz dodawania nowego zadania -->
-    <section id="add-task-section">
-        <h2>Dodaj nowe zadanie</h2>
-        <form id="add-task-form">
-            <label for="new-task">Treść zadania:</label>
-            <input type="text" id="new-task" name="new-task" placeholder="Wpisz zadanie...">
+<div id="controls">
+    <input type="text" id="new-task" placeholder="Nowe zadanie..." />
+    <input type="datetime-local" id="deadline" />
+    <button id="add-btn">➕ Dodaj</button>
+</div>
 
-            <label for="task-deadline">Termin wykonania (opcjonalnie):</label>
-            <input type="datetime-local" id="task-deadline" name="task-deadline">
-
-            <button type="submit" id="add-btn">Dodaj zadanie</button>
-        </form>
-
-        <!-- Miejsce na komunikaty walidacji -->
-        <p id="validation-message" class="error"></p>
-    </section>
-</main>
-
-<footer>
-    <p>Lista To-Do © 2025</p>
-</footer>
+<script src="todo.js"></script>
 </body>
 </html>

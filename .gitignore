@@ -17,5 +17,4 @@ node_modules/
 
 # Ignoruj pliki cache przeglądarki (jeśli testujesz lokalnie)
 .cache/
-.vscode/
-.idea/
+
