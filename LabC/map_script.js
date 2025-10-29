@@ -1,20 +1,6 @@
-
-
-/* FILE: script.js */
-
-// Script for LAB C — puzzle map
-// Wymagania z treści zadania:
-// - pobranie zgody na lokalizację
-// - pobranie zgody na powiadomienia
-// - okno mapy Leaflet
-// - przycisk Moja lokalizacja -> pokazuje współrzędne i oznacza na mapie
-// - eksport mapy do rastra (html2canvas)
-// - podział obrazu na 16 części (4x4), wymieszanie i rozrzucone na stole
-// - drag & drop do umieszczania w slotach
-// - weryfikacja na bieżąco; po ułożeniu wszystkich -> Notification
-
-// Uwaga: Jeżeli tile server blokuje CORS, eksport przez html2canvas może się nie udać (tainting).
-// Dlatego tileLayer ustawiamy crossOrigin: true i korzystamy z ogólnodostępnych tile'y.
+// FILE: map_script.js
+// Poprawiona wersja: używa leaflet-image zamiast html2canvas,
+// czyści planszę przed generowaniem, oraz stabilniejszy drag & drop.
 
 document.addEventListener('DOMContentLoaded', () => {
     const mapEl = document.getElementById('map');
@@ -25,21 +11,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const board = document.getElementById('board');
     const table = document.getElementById('table');
 
-// Inicjalizacja mapy Leaflet
+    const S_ROWS = 4, S_COLS = 4;
+
+    // Inicjalizacja mapy Leaflet
     const map = L.map(mapEl).setView([52.2297, 21.0122], 13);
 
-// Tile layer z crossOrigin - może pomóc przy html2canvas
+    // Tile layer z crossOrigin - może pomóc przy rasteryzacji
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors',
         crossOrigin: true
     });
-
     tiles.addTo(map);
 
     let myMarker = null;
 
-// Geolocation: prośba o zgodę automatycznie przy kliknięciu przycisku
+    // Przygotowanie pól docelowych (4x4)
+    for (let r = 0; r < S_ROWS * S_COLS; r++) {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.dataset.slotIndex = r;
+        slot.addEventListener('dragover', ev => ev.preventDefault());
+        slot.addEventListener('drop', onDropToSlot);
+        board.appendChild(slot);
+    }
+
+    // Stan puzzli
+    let piecesState = {}; // pieceId -> correctSlotIndex
+    let placed = {};      // pieceId -> boolean (czy poprawnie umieszczone)
+    const piecesById = new Map(); // pieceId -> element (stabilne odnajdywanie)
+
+    // --- Geolocation ---
     locBtn.addEventListener('click', () => {
         if (!navigator.geolocation) {
             alert('Twoja przeglądarka nie wspiera Geolocation API');
@@ -56,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-// Powiadomienia
+    // --- Powiadomienia ---
     notifBtn.addEventListener('click', async () => {
         if (!('Notification' in window)) {
             alert('Przeglądarka nie wspiera Notification API');
@@ -66,113 +68,137 @@ document.addEventListener('DOMContentLoaded', () => {
         info.textContent = 'Permission for notifications: ' + perm;
     });
 
-// Przygotowanie pól docelowych (4x4)
-    const S_ROWS = 4, S_COLS = 4;
-    for (let r=0; r<S_ROWS*S_COLS; r++) {
-        const slot = document.createElement('div');
-        slot.className = 'slot';
-        slot.dataset.slotIndex = r;
-        slot.addEventListener('dragover', ev => ev.preventDefault());
-        slot.addEventListener('drop', onDropToSlot);
-        board.appendChild(slot);
-    }
+    // Pozwól wrzucać z powrotem na stół
+    table.addEventListener('dragover', ev => ev.preventDefault());
+    table.addEventListener('drop', ev => {
+        ev.preventDefault();
+        const id = ev.dataTransfer.getData('text/plain');
+        const node = piecesById.get(id);
+        if (!node) return;
 
-    let piecesState = {}; // pieceId -> correctSlot
-    let placed = {};
+        // jeśli był w jakimś slocie, odznacz
+        const prevSlot = findSlotByOccupiedId(id);
+        if (prevSlot) {
+            delete prevSlot.dataset.occupied;
+            prevSlot.style.border = ''; // przywróć domyślne
+        }
 
-// Eksport mapy do rastra i podział
+        table.appendChild(node);
+        // zaznacz jako nieprzydzielony
+        placed[id] = false;
+        checkAllCorrect();
+    });
+
+    // --- Eksport mapy i podział na kawałki (leaflet-image) ---
     exportBtn.addEventListener('click', async () => {
-        info.textContent = 'Tworzę obraz mapy...';
-// chwilowo ustawiamy mały zoom żeby obraz pasował do wymiarów elementów
-        await new Promise(resolve => setTimeout(resolve, 200));
+        info.textContent = 'Generuję obraz mapy...';
 
-// użyj html2canvas na kontenerze mapy
-        try {
-            const canvas = await html2canvas(mapEl, {useCORS: true, allowTaint: false, backgroundColor: null});
+        // Przygotowanie: wyczyść stół i planszę (zawartość i stany)
+        clearAllPiecesAndSlots();
+
+        // Krótkie opóźnienie (render), nie jest wymagane ale pomaga przy dynamicznym DOM
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Użyj leaflet-image (leafletImage) - biblioteka powinna być dołączona w HTML
+        if (typeof leafletImage !== 'function') {
+            alert('Brak leaflet-image (leafletImage). Dołącz leaflet-image.js w HTML.');
+            info.textContent = 'Błąd: brak leaflet-image.js';
+            return;
+        }
+
+        leafletImage(map, (err, canvas) => {
+            if (err || !canvas) {
+                console.error(err);
+                alert('Nie udało się wygenerować obrazu mapy. Spróbuj innego tile servera lub sprawdź konsolę.');
+                info.textContent = 'Błąd generowania obrazu mapy';
+                return;
+            }
+
             const w = canvas.width, h = canvas.height;
             const pieceW = Math.floor(w / S_COLS);
             const pieceH = Math.floor(h / S_ROWS);
 
-// wyczyść poprzednie
-            table.innerHTML = '';
+            // reset stanów
             piecesState = {};
             placed = {};
+            piecesById.clear();
 
-// stworzenie 16 kawałków jako canvases
-            let pieces = [];
-            for (let r=0; r<S_ROWS; r++) {
-                for (let c=0; c<S_COLS; c++) {
+            // utworzenie kawałków
+            const pieces = [];
+            for (let r = 0; r < S_ROWS; r++) {
+                for (let c = 0; c < S_COLS; c++) {
                     const pCanvas = document.createElement('canvas');
                     pCanvas.width = pieceW;
                     pCanvas.height = pieceH;
                     const ctx = pCanvas.getContext('2d');
-                    ctx.drawImage(canvas, c*pieceW, r*pieceH, pieceW, pieceH, 0, 0, pieceW, pieceH);
+                    ctx.drawImage(canvas, c * pieceW, r * pieceH, pieceW, pieceH, 0, 0, pieceW, pieceH);
+
                     const id = `${r}-${c}`;
                     pCanvas.className = 'piece';
                     pCanvas.draggable = true;
                     pCanvas.dataset.pieceId = id;
-// data-url for quick preview or drag image
-                    pCanvas.dataset.correctSlot = r*S_COLS + c;
+                    pCanvas.dataset.correctSlot = (r * S_COLS + c).toString();
 
+                    // dragstart
                     pCanvas.addEventListener('dragstart', ev => {
                         ev.dataTransfer.setData('text/plain', id);
-// set drag image
-                        const img = new Image();
-                        img.src = pCanvas.toDataURL();
-                        ev.dataTransfer.setDragImage(img, pieceW/2, pieceH/2);
+                        ev.dataTransfer.effectAllowed = 'move';
+                        // set drag image
+                        const dragImg = new Image();
+                        dragImg.src = pCanvas.toDataURL();
+                        // jeśli obraz się jeszcze nie załadował, ustaw mały placeholder
+                        dragImg.onload = () => ev.dataTransfer.setDragImage(dragImg, pieceW / 2, pieceH / 2);
+                        // fallback: natychmiast ustaw bez wait
+                        ev.dataTransfer.setDragImage(pCanvas, pieceW / 2, pieceH / 2);
+                    });
+
+                    // dragend - upewnij się, że nie ma tmp stanów
+                    pCanvas.addEventListener('dragend', () => {
+                        // nic specjalnego teraz, ale tu można dodać cleanup
                     });
 
                     pieces.push(pCanvas);
-                    piecesState[id] = r*S_COLS + c;
+                    piecesState[id] = parseInt(pCanvas.dataset.correctSlot, 10);
+                    placed[id] = false;
+                    piecesById.set(id, pCanvas);
                 }
             }
 
-// shuffle pieces
+            // shuffle i dodaj na stół
             shuffleArray(pieces);
             pieces.forEach(pc => table.appendChild(pc));
+
             info.textContent = 'Mapa podzielona i rozrzucona. Przeciągnij elementy na planszę.';
-
-// Allow dropping back to table
-            table.addEventListener('dragover', ev => ev.preventDefault());
-            table.addEventListener('drop', ev => {
-                ev.preventDefault();
-                const id = ev.dataTransfer.getData('text/plain');
-                const node = document.querySelector(`[data-piece-id='${id}']`);
-                if (node) table.appendChild(node);
-// jeśli był w jakimś slocie, odznacz
-                const slotEl = document.querySelector(`[data-slot-index][data-occupied='${id}']`);
-                if (slotEl) {
-                    delete slotEl.dataset.occupied;
-                }
-                checkAllCorrect();
-            });
-
-        } catch (e) {
-            console.error(e);
-            alert('Nie udało się wykonać eksportu mapy. Przyczyną może być blokada CORS na serwerze kafelków. Spróbuj innego tile servera z obsługą CORS.');
-            info.textContent = 'Błąd eksportu: ' + e.message;
-        }
+            checkAllCorrect(); // aktualizacja licznika
+        });
     });
 
     function onDropToSlot(ev) {
         ev.preventDefault();
         const slot = ev.currentTarget;
         const id = ev.dataTransfer.getData('text/plain');
-        const node = document.querySelector(`[data-piece-id='${id}']`);
+        const node = piecesById.get(id);
         if (!node) return;
 
-// jeżeli miejsce już zajęte, przenieś istniejący element z powrotem na stół
+        // jeżeli miejsce już zajęte, przenieś istniejący element z powrotem na stół
         if (slot.dataset.occupied) {
             const prevId = slot.dataset.occupied;
-            const prevNode = document.querySelector(`[data-piece-id='${prevId}']`);
+            const prevNode = piecesById.get(prevId);
             if (prevNode) table.appendChild(prevNode);
             delete slot.dataset.occupied;
+        }
+
+        // jeśli ten kawałek był wcześniej w innym slocie - odznacz tamten slot
+        const prevSlotForNode = findSlotByOccupiedId(id);
+        if (prevSlotForNode && prevSlotForNode !== slot) {
+            delete prevSlotForNode.dataset.occupied;
+            prevSlotForNode.style.border = '';
         }
 
         slot.appendChild(node);
         slot.dataset.occupied = id;
 
-// sprawdź czy poprawne
+        // sprawdź poprawność
         const correctSlot = parseInt(node.dataset.correctSlot, 10);
         const slotIndex = parseInt(slot.dataset.slotIndex, 10);
         if (correctSlot === slotIndex) {
@@ -187,12 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function checkAllCorrect() {
-// count correct pieces placed into slots
         const total = Object.keys(piecesState).length;
         const correctPlaced = Object.keys(placed).filter(k => placed[k]).length;
         info.textContent = `Ustawione poprawnie: ${correctPlaced} / ${total}`;
         if (total > 0 && correctPlaced === total) {
-// wszystkie ułożone poprawnie
             showNotification('Gratulacje!', 'Ułożyłeś mapę poprawnie.');
         }
     }
@@ -206,12 +230,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (perm === 'granted') new Notification(title, { body });
             });
         } else {
-// denied
             alert(`${title}\n${body}`);
         }
     }
 
-// util
+    // --- pomocnicze funkcje ---
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -219,4 +242,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function clearAllPiecesAndSlots() {
+        // usuń elementy z table
+        table.innerHTML = '';
+        // usuń zawartość slotów i atrybuty
+        const slotEls = board.querySelectorAll('.slot');
+        slotEls.forEach(s => {
+            s.innerHTML = '';
+            delete s.dataset.occupied;
+            s.style.border = ''; // reset obramowania
+        });
+        // wyczyść stany
+        piecesState = {};
+        placed = {};
+        piecesById.clear();
+        info.textContent = 'Wyczyszczono planszę i stół.';
+    }
+
+    function findSlotByOccupiedId(id) {
+        // znajdź slot który ma data-occupied == id
+        const slots = board.querySelectorAll('.slot');
+        for (const s of slots) {
+            if (s.dataset.occupied === id) return s;
+        }
+        return null;
+    }
 });
